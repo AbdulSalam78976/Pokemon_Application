@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pokemon_application/models/favorite_model.dart';
+import 'package:pokemon_application/controller/favorite_controller.dart';
 import 'package:pokemon_application/models/pokemon_model.dart';
 import 'package:pokemon_application/utils/responisve.dart';
 

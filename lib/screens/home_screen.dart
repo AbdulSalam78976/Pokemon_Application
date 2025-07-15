@@ -1,16 +1,12 @@
-import 'dart:convert';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_instance/get_instance.dart';
-import 'package:get/route_manager.dart';
-import 'package:http/http.dart' as http;
-import 'package:pokemon_application/constants/constants.dart';
-import 'package:pokemon_application/models/favorite_model.dart';
+import 'package:get/get.dart';
+import 'package:pokemon_application/controller/favorite_controller.dart';
+import 'package:pokemon_application/controller/pokemon_controller.dart';
 import 'package:pokemon_application/models/pokemon_model.dart';
 import 'package:pokemon_application/screens/favourites_screen.dart';
-import 'package:pokemon_application/utils/responisve.dart';
 import 'package:pokemon_application/screens/pokemon_detail_screen.dart';
+import 'package:pokemon_application/utils/responisve.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,28 +16,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<Pokedex> fetchData() async {
-    final url = Uri.parse(ApiKey);
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return Pokedex.fromJson(jsonData);
-      } else {
-        throw Exception('Failed to load data');
-      }
-    } catch (e) {
-      throw Exception('Error: $e');
-    }
-  }
+  final PokemonController pokemonController = Get.put(PokemonController());
+  final FavoriteModel favoriteModel = Get.put(FavoriteModel());
 
   @override
   Widget build(BuildContext context) {
-    final FavoriteModel favoriteModel = Get.put(FavoriteModel());
     final isMobile = Responsive.isMobile(context);
-    Responsive.isTablet(context);
     final isDesktop = Responsive.isDesktop(context);
 
     return Scaffold(
@@ -85,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   } else if (value == 'Profile') {
-                    // TODO: Navigate to Profile screen or show dialog
                     Get.snackbar(
                       'Profile',
                       'Profile screen coming soon!',
@@ -105,90 +84,59 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
             Positioned.fill(
               top: 100,
               child: Column(
                 children: [
+                  const SizedBox(height: 10),
                   Expanded(
-                    child: Stack(
-                      children: [
-                        // Pokeball background watermark
-                        Positioned(
-                          top: -40,
-                          right: -40,
-                          child: Opacity(
-                            opacity: 0.08,
-                            child: Image.asset(
-                              'assets/images/pokeball.png',
-                              width: 200,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
+                    child: Obx(() {
+                      if (pokemonController.isLoading.value) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (pokemonController.error.isNotEmpty) {
+                        return Center(
+                          child: Text(
+                            'Error: ${pokemonController.error.value}',
                           ),
-                        ),
-                        FutureBuilder<Pokedex>(
-                          future: fetchData(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            } else if (snapshot.hasError) {
-                              return Center(
-                                child: Text("Error: \\${snapshot.error}"),
-                              );
-                            } else if (!snapshot.hasData ||
-                                snapshot.data!.pokemon.isEmpty) {
-                              return const Center(
-                                child: Text("No data found."),
-                              );
-                            } else {
-                              final pokemons = snapshot.data!.pokemon;
-                              return GridView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: isMobile
-                                          ? 2
-                                          : isDesktop
-                                          ? 4
-                                          : 3,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                      childAspectRatio: isMobile ? 0.85 : 1.5,
-                                    ),
-                                itemCount: pokemons.length,
-                                itemBuilder: (context, index) {
-                                  final pokemon = pokemons[index];
-                                  return InkWell(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              PokemonDetailScreen(
-                                                pokemon: pokemon,
-                                                color: _getTypeColor(
-                                                  pokemon.type.first,
-                                                ),
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: _PokemonCard(pokemon: pokemon),
-                                  );
-                                },
-                              );
-                            }
+                        );
+                      } else if (pokemonController.pokemonList.isEmpty) {
+                        return const Center(child: Text("No data found."));
+                      } else {
+                        final pokemons = pokemonController.pokemonList;
+                        return GridView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isMobile
+                                    ? 2
+                                    : isDesktop
+                                    ? 4
+                                    : 3,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                childAspectRatio: isMobile ? 0.85 : 1.5,
+                              ),
+                          itemCount: pokemons.length,
+                          itemBuilder: (context, index) {
+                            final pokemon = pokemons[index];
+                            return InkWell(
+                              onTap: () {
+                                Get.to(
+                                  () => PokemonDetailScreen(
+                                    pokemon: pokemon,
+                                    color: _getTypeColor(pokemon.type.first),
+                                  ),
+                                );
+                              },
+                              child: _PokemonCard(pokemon: pokemon),
+                            );
                           },
-                        ),
-                      ],
-                    ),
+                        );
+                      }
+                    }),
                   ),
                 ],
               ),
@@ -221,7 +169,6 @@ class _PokemonCard extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Pokeball watermark as background, centered
           Positioned.fill(
             child: Align(
               alignment: Alignment.center,
@@ -233,7 +180,6 @@ class _PokemonCard extends StatelessWidget {
               ),
             ),
           ),
-          // Pokémon number
           Positioned(
             top: 14,
             left: 16,
@@ -246,7 +192,6 @@ class _PokemonCard extends StatelessWidget {
               ),
             ),
           ),
-          // Pokémon image, centered above pokeball
           Positioned.fill(
             child: Align(
               alignment: Alignment.center,
@@ -258,17 +203,11 @@ class _PokemonCard extends StatelessWidget {
                   height: imageSize,
                   placeholder: (context, url) =>
                       const CircularProgressIndicator(),
-                  errorWidget: (context, url, error) {
-                    print(
-                      'Image load error for URL: \\${pokemon.spriteUrl} - Error: \\${error.toString()}',
-                    );
-                    return const Icon(Icons.error);
-                  },
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
               ),
             ),
           ),
-          // Name and types
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.only(
@@ -325,40 +264,40 @@ class _PokemonCard extends StatelessWidget {
 Color _getTypeColor(Type type) {
   switch (type) {
     case Type.GRASS:
-      return const Color(0xFF78C850); // vibrant green
+      return const Color(0xFF78C850);
     case Type.FIRE:
-      return const Color(0xFFF08030); // bright orange
+      return const Color(0xFFF08030);
     case Type.WATER:
-      return const Color(0xFF6890F0); // soft blue
+      return const Color(0xFF6890F0);
     case Type.ELECTRIC:
-      return const Color(0xFFF8D030); // rich yellow
+      return const Color(0xFFF8D030);
     case Type.POISON:
-      return const Color(0xFFA040A0); // magenta-purple
+      return const Color(0xFFA040A0);
     case Type.BUG:
-      return const Color(0xFFA8B820); // grassy olive
+      return const Color(0xFFA8B820);
     case Type.NORMAL:
-      return const Color(0xFFA8A878); // muted taupe
+      return const Color(0xFFA8A878);
     case Type.FLYING:
-      return const Color(0xFFA890F0); // lavender
+      return const Color(0xFFA890F0);
     case Type.FAIRY:
-      return const Color(0xFFEE99AC); // light pink
+      return const Color(0xFFEE99AC);
     case Type.PSYCHIC:
-      return const Color(0xFFF85888); // soft red-pink
+      return const Color(0xFFF85888);
     case Type.ROCK:
-      return const Color(0xFFB8A038); // golden sand
+      return const Color(0xFFB8A038);
     case Type.GROUND:
-      return const Color(0xFFE0C068); // soft brown
+      return const Color(0xFFE0C068);
     case Type.ICE:
-      return const Color(0xFF98D8D8); // icy teal
+      return const Color(0xFF98D8D8);
     case Type.DRAGON:
-      return const Color(0xFF7038F8); // royal purple
+      return const Color(0xFF7038F8);
     case Type.DARK:
-      return const Color(0xFF705848); // dark coffee
+      return const Color(0xFF705848);
     case Type.GHOST:
-      return const Color(0xFF705898); // haunted indigo
+      return const Color(0xFF705898);
     case Type.STEEL:
-      return const Color(0xFFB8B8D0); // metallic blue-gray
+      return const Color(0xFFB8B8D0);
     default:
-      return const Color(0xFF68A090); // default teal-gray
+      return const Color(0xFF68A090);
   }
 }
