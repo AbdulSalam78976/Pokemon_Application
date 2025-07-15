@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pokemon_application/models/favorite_model.dart';
 import 'package:pokemon_application/models/pokemon_model.dart';
 import 'package:pokemon_application/utils/responisve.dart';
 
@@ -20,6 +21,7 @@ class PokemonDetailScreen extends StatefulWidget {
 class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
   @override
   Widget build(BuildContext context) {
+    final FavoriteModel favoriteModel = Get.put(FavoriteModel());
     final isMobile = Responsive.isMobile(context);
     final isTablet = Responsive.isTablet(context);
     final isDesktop = Responsive.isDesktop(context);
@@ -47,12 +49,24 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
           Positioned(
             right: 10,
             top: 15,
-            child: IconButton(
-              icon: const Icon(
-                Icons.favorite_border_outlined,
-                color: Colors.white,
+            child: Obx(
+              () => IconButton(
+                icon: Icon(
+                  favoriteModel.isFavorite(widget.pokemon)
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  color: Colors.red,
+                  size: 30,
+                ),
+                onPressed: () {
+                  favoriteModel.addFavorite(widget.pokemon);
+                  Get.snackbar(
+                    "Success",
+                    "Added to favorites",
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
               ),
-              onPressed: () {},
             ),
           ),
 

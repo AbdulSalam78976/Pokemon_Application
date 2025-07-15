@@ -2,9 +2,13 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_instance/get_instance.dart';
+import 'package:get/route_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:pokemon_application/constants/constants.dart';
+import 'package:pokemon_application/models/favorite_model.dart';
 import 'package:pokemon_application/models/pokemon_model.dart';
+import 'package:pokemon_application/screens/favourites_screen.dart';
 import 'package:pokemon_application/utils/responisve.dart';
 import 'package:pokemon_application/screens/pokemon_detail_screen.dart';
 
@@ -35,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final FavoriteModel favoriteModel = Get.put(FavoriteModel());
     final isMobile = Responsive.isMobile(context);
     Responsive.isTablet(context);
     final isDesktop = Responsive.isDesktop(context);
@@ -70,11 +75,37 @@ class _HomeScreenState extends State<HomeScreen> {
             Positioned(
               right: 30,
               top: 30,
-              child: IconButton(
-                icon: Icon(Icons.menu, color: Colors.grey),
-                onPressed: () {},
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.menu, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'favorites') {
+                    Get.to(
+                      () => FavouritesScreen(
+                        favourites: favoriteModel.favoriteList,
+                      ),
+                    );
+                  } else if (value == 'Profile') {
+                    // TODO: Navigate to Profile screen or show dialog
+                    Get.snackbar(
+                      'Profile',
+                      'Profile screen coming soon!',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<String>(
+                    value: 'Profile',
+                    child: Text('Profile'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'favorites',
+                    child: Text('Favorites'),
+                  ),
+                ],
               ),
             ),
+
             Positioned.fill(
               top: 100,
               child: Column(
